@@ -159,7 +159,7 @@ calculate_trait_at_internal_node = function(trait_child1, trait_child2, branch_l
     #   branch_length_to_child1: branch length leading to first child
     #   branch_length_to_child2: branch length leading to second child
 
-    # ???
+    trait_at_internal_node <- trait_child1(branch_length_to_child2/(branch_length_to_child1 + branch_length_to_child2))+trait_child2(branch_length_to_child1/(branch_length_to_child1 + branch_length_to_child2))
 
     # Return the estimated value of the trait at the internal node.
     return(trait_at_internal_node)
