@@ -187,7 +187,11 @@ calculate_corrected_branch_length = function(node, child1, child2, corrected_bra
     #   corrected_branch_lengths: the current vector of corrected branch lengths, where all branches
     #                             below the given node have already been corrected
 
-    # ???
+    child1_branch_length <- corrected_branch_lengths[child1]
+    child2_branch_length <- corrected_branch_lengths[child2]
+    original_branch_length <- corrected_branch_lengths[node]
+    
+    corrected_length <- child1_branch_length*child2_branch_length/(child1_branch_length + child2_branch_length) + original_branch_length
 
     # Return the numerical value of the corrected branch length
     return(corrected_length)
