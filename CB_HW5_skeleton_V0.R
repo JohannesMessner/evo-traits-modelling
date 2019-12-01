@@ -173,7 +173,7 @@ calculate_contrast = function(trait_child1, trait_child2, branch_length_to_child
     #   branch_length_to_child1: branch length leading to first child
     #   branch_length_to_child2: branch length leading to second child
 
-    # ???
+    contrast <- (trait_child1 - trait_child2)/sqrt(branch_length_to_child1 + branch_length_to_child2)
 
     # Return the numerical value of the normalized contrast.
     return(contrast)
