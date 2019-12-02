@@ -141,7 +141,12 @@ linear_regression = function(values1, values2) {
     #   values1: first ordered vector of values
     #   values2: second ordered vector of values
 
-    # ???
+    res <- lm(y ~ x, data.frame(x = values1, y = values2))
+    s <- summary(res)
+    slope <- s$coefficients[2,1]
+    intercept <- s$coefficients[1,1]
+    p.value <- s$coefficients[2,4]
+    R2 <- s$r.squared
 
     # Return a vector with named values that summarizes the linear regression result.
     #   slope: the slope of the linear regression line (beta)
@@ -159,7 +164,7 @@ calculate_trait_at_internal_node = function(trait_child1, trait_child2, branch_l
     #   branch_length_to_child1: branch length leading to first child
     #   branch_length_to_child2: branch length leading to second child
 
-    trait_at_internal_node <- trait_child1(branch_length_to_child2/(branch_length_to_child1 + branch_length_to_child2))+trait_child2(branch_length_to_child1/(branch_length_to_child1 + branch_length_to_child2))
+    trait_at_internal_node <- trait_child1*(branch_length_to_child2/(branch_length_to_child1 + branch_length_to_child2)) + trait_child2*(branch_length_to_child1/(branch_length_to_child1 + branch_length_to_child2))
 
     # Return the estimated value of the trait at the internal node.
     return(trait_at_internal_node)
@@ -205,7 +210,20 @@ calculate_trait_and_contrast = function(child1, child2, traits, corrected_branch
     #   corrected_branch_lengths: the current vector of corrected branch lengths, where all branches
     #                             below the node in question have already been corrected
 
-    # ???
+    trait_child_1 <- traits[child1]
+    trait_child_2 <- traits[child2]
+    branch_length_child_1 <- corrected_branch_lengths[child1]
+    branch_length_child_2 <- corrected_branch_lengths[child2]
+    
+    trait_value <- calculate_trait_at_internal_node(trait_child1 = trait_child_1,
+                                                    trait_child2 = trait_child_2,
+                                                    branch_length_to_child1 = branch_length_child_1,
+                                                    branch_length_to_child2 = branch_length_child_2)
+    
+    contrast <- calculate_contrast(trait_child1 = trait_child_1,
+                                   trait_child2 = trait_child_2,
+                                   branch_length_to_child1 = branch_length_child_1,
+                                   branch_length_to_child2 = branch_length_child_2)
 
     # Return the trait value and the normalized contrast value at the given node.
     #   trait_value: the numerical value for the trait at given node
@@ -225,18 +243,40 @@ get_contrasts_in_subtree = function(node, tree, description) {
     #				 This list is initialized by the provided function initialize_description().
 
     # If the node is a tip, return the same description.
-    # ???
+    if (is_tip(node, tree)) {
+      return(description)
+    }
 
     # Otherwise, get the child nodes of the given node and compute the corrected branch lengths, normalized contrasts and trait values
     # for the child nodes, saving the updated description.
-    # ???
+    children <- get_node_children(node, tree)
+    updated_description <- get_contrasts_in_subtree(node = children$child1, tree = tree, description = description)
+    updated_description <- get_contrasts_in_subtree(node = children$child2, tree = tree, description = updated_description)
+    
 
     # Update the branch length leading to the given node, save it in the description
-    # ???
+    corrected_branch_length <- calculate_corrected_branch_length(node = node, child1 = children$child1, child2 = children$child2,
+                                      corrected_branch_lengths = updated_description$corrected_branch_lengths)
+
+    updated_description$corrected_branch_lengths[node] <- corrected_branch_length
 
     # Compute the trait values and normalized contrasts for both traits, save the values in the description
-    # ???
-
+    traits_1 <- updated_description$traits[,1]
+    trait_contrast_1 <- calculate_trait_and_contrast(child1 = children$child1,
+                                                     child2 = children$child2,
+                                                     traits = traits_1,
+                                                     corrected_branch_lengths = updated_description$corrected_branch_lengths)
+    updated_description$traits[node,1] <- trait_contrast_1$trait_value
+    updated_description$normalized_contrasts[node, 1] <- trait_contrast_1$contrast
+    
+    traits_2 <- updated_description$traits[,2]
+    trait_contrast_1 <- calculate_trait_and_contrast(child1 = children$child1,
+                                                     child2 = children$child2,
+                                                     traits = traits_2,
+                                                     corrected_branch_lengths = updated_description$corrected_branch_lengths)
+    updated_description$traits[node,2] <- trait_contrast_1$trait_value
+    updated_description$normalized_contrasts[node, 2] <- trait_contrast_1$contrast
+    
     # Return a list with updated trait values, normalized contrasts, and corrected branch lenghts.
     #   updated_description: list with structure as defined in the initialize_description() function.
     return(updated_description)
@@ -255,17 +295,18 @@ get_trait_correlation = function(newick_tree, traits_at_tip) {
     tree = reorder(tree, order = "cladewise")
 
     # Initialize the list of traits, contrasts and branch lengths
-    # ???
+    description <- initialize_description(tree, traits_at_tip)
 
     # Calculate the new trait values at all the nodes in the tree, normalized contrasts at the internal nodes and the
     # corrected branch lengths, starting at the root of the tree.
-    # ???
+    updated_description <- get_contrasts_in_subtree(node = get_root(tree), tree = tree, description = description)
 
     # Perform linear regression on the traits at the tips and get the slope, intercept, P-value, and R2-value
-    # ???
+    raw_data_regression <- linear_regression(traits_at_tip$trait1, traits_at_tip$trait2)
 
     # Perform linear regression on the normalized contrasts and get the slope, intercept, P-value, and R2-value
-    # ???
+    norm_contrasts <- updated_description$normalized_contrasts
+    contrasts_regression <- linear_regression(norm_contrasts[,1], norm_contrasts[,2])
 
     # Plot the two linear regression results
     summary_linear_regression <- list(linear_regression_raw_data = raw_data_regression,
